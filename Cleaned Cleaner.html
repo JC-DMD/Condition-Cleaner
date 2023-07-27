@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Condition Cleaner 5000</title>
+	<style>
+		body {
+		font-family: Arial, sans-serif;
+		}
+
+		mark {
+			background-color: yellow;
+			color: black;
+		}
+
+		#fileInput {
+			margin-bottom: 10px;
+			width: 100%; /* Or set to any other value */
+		}
+
+		#container {
+			display: flex;
+		}
+
+		#columnA {
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+			font-family: "Times New Roman", Times, serif;
+		}
+
+		#columnA div {
+			border: 1px solid #ccc;
+			padding: 10px;
+			margin-bottom: -0.01px;
+			word-wrap: break-word;
+			font-size: 12pt;
+			box-sizing: border-box; /* Include border and padding in height calculation */
+		}
+
+		#columnB {
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+			font-family: "Times New Roman", Times, serif;
+		}
+
+		#columnB div {
+			border: 1px solid #ccc;
+			padding: 10px;
+			margin-bottom: -0.01px;
+			word-wrap: break-word;
+			font-size: 12pt;
+			box-sizing: border-box; /* Include border and padding in height calculation */
+		}
+
+
+		#actionButtons {
+			display: flex;
+			justify-content: flex-end; /* Align the buttons to the right */
+		}
+
+        /* Add a custom class for the highlighted number */
+        .highlighted {
+            font-weight: bold;
+        }
+
+		.drop-indicator {
+			position: absolute;
+			height: 2px;
+			background-color: blue;
+			pointer-events: none;
+			transition: top 0.2s, left 0.2s, width 0.2s;
+		}
+
+        /* Add a custom class for the export button */
+        #exportButton {
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+	.edit-mode div {
+    	border: 2px solid #0f0;
+	}
+
+    </style>
+</head>
+<body>
+<input type="file" id="fileInput" />
+<div id="editControls">
+    <button class="myButton" id="editButton" style="display: none;">Edit Conditions</button>
+    <div id="actionButtons">
+        <button class="myButton" id="keepButton" style="display: none;">Keep Changes</button>
+        <button class="myButton" id="discardButton" style="display: none;">Discard Changes</button>
+    </div>
+</div>
+
+<div id="container">
+	<div id="columnA"></div>
+	<div id="columnB" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+	<div id="drop-indicator" class="drop-indicator"></div>
+</div>
+
+	<button id="copyButton">Copy to Clipboard</button>
+
+<!-- Add the export button -->
+<button id="exportButton">Export as .txt</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+
+<script>
+    document.getElementById('fileInput').addEventListener('change', handleFile, false);
+
+function handleFile(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        const data = e.target.result;
+
+        if (file.type === "text/plain") {
+            const columnBData = data.split('\n').filter(Boolean);
+            const cleanedColumnBData = cleanColumnBData(columnBData);
+
+            displayColumnData(columnBData, cleanedColumnBData);
+        } else if (file.type.includes("sheet") || file.type.includes("excel")) {
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            // Only consider data from row 5 and onwards
+            const columnBData = jsonData.slice(4).map(row => row[1]).filter(Boolean);
+            const cleanedColumnBData = cleanColumnBData(columnBData);
+
+            displayColumnData(columnBData, cleanedColumnBData);
+        }
+    };
+
+    if (file.type === "text/plain") {
+        reader.readAsText(file);
+    } else if (file.type.includes("sheet") || file.type.includes("excel")) {
+        reader.readAsBinaryString(file);
+    }
+}
+
+function hasOddNumberOfBrackets(value) {
+    const bracketsPairs = [['(', ')'], ['[', ']'], ['{', '}']];
+    return bracketsPairs.some(pair => {
+        const openingBrackets = (value.match(new RegExp(`\\${pair[0]}`, 'g')) || []).length;
+        const closingBrackets = (value.match(new RegExp(`\\${pair[1]}`, 'g')) || []).length;
+        return openingBrackets !== closingBrackets;
+    });
+}
+
+function cleanColumnBData(columnBData) {
+    const cleanedColumnBData = columnBData.map(value => {
+        // Highlight the text within brackets
+        value = value.replace(/\[(.*?)\]/gs, '<mark>[$1]</mark>');
+
+        // Highlight the underscore characters
+        value = value.replace(/_/g, '<mark>_</mark>');
+        
+        // Remove double spaces, URLs, phone numbers, bullet points, and tabs
+        value = value.replace(/\s{2,}/g, ' ')
+                    .replace(/\(?\bhttps?:\/\/[^\s]+\)?/g, "")
+                    .replace(/(South of River contact\s–\s[^\–]+\–\s[\d-]+)|(North of River contact\s-\s[^\–]+\–\s[\d-]+)/g, "")
+                    .replace(/\b\d{3}-\d{3}-\d{4}\b/g, "")
+                    .replace(/•/g, '')
+                    .replace(/\t/g, ' ');
+
+        // Check for odd number of brackets and highlight
+        if (hasOddNumberOfBrackets(value)) {
+            value = '<mark>' + value + '</mark>';
+        }
+        
+        return value;
+    });
+
+    // Filter out empty or undefined rows
+    return cleanedColumnBData.filter(value => value && value.trim() !== '');
+}
+
+function updateColumnA() {
+	const columnA = document.getElementById('columnA');
+	const columnB = document.getElementById('columnB');
+
+	// Get the current count of children in Column B
+	const columnBCount = columnB.children.length;
+
+	// Remove excess cells in Column A
+	while (columnA.children.length > columnBCount) {
+		columnA.removeChild(columnA.lastChild);
+	}
+}
+
+// Function to ensure Column A is the same height as Column B if the window size changes
+window.onresize = function(event) {
+    updateColumnAHeight();
+};
+
+// Function to display column data
+function displayColumnData(columnBData, cleanedColumnBData) {
+    const columnA = document.getElementById('columnA');
+    const columnB = document.getElementById('columnB');
+
+    columnA.innerHTML = ''; // Clear previous data in column A
+    columnB.innerHTML = ''; // Clear previous data in column B
+
+    // Create fixed cells in column A based on the number of rows in cleanedColumnBData
+    for (let i = 0; i < cleanedColumnBData.length; i++) {
+        const fixedCell = createFixedCell(i + 1);
+        columnA.appendChild(fixedCell);
+    }
+
+    // Skip the first element (header) of cleanedColumnBData
+    for (let i = 0; i < cleanedColumnBData.length; i++) {
+        const cell = createDraggableCell(cleanedColumnBData[i], i + 1);
+        columnB.appendChild(cell);
+    }
+
+    // Update the height of column A tiles to match column B tiles
+    updateColumnAHeight();
+}
+
+// Function to create fixed cell in column A
+function createFixedCell(value) {
+	const div = document.createElement('div');
+	div.textContent = value + '.';
+	div.classList.add('column-tile', 'number');
+	return div;
+}
+
+// Function to create draggable cell in column B
+function createDraggableCell(value, tileId) {
+	const div = document.createElement('div');
+	div.innerHTML = value; // Use innerHTML instead of textContent
+	div.classList.add('column-tile');
+	div.setAttribute('draggable', true);
+	div.setAttribute('data-tile-id', tileId); // Assign a unique identifier to the tile
+	div.addEventListener('dragstart', dragStart);
+	div.addEventListener('dragend', dragEnd); // Add dragend event listener
+	div.addEventListener('dragover', dragOver); // Add dragover event listener
+	div.addEventListener('dragleave', dragLeave); // Add dragleave event listener
+	return div;
+}
+
+// Function to handle drag start
+let draggedElement;
+let highlightedNumber;
+
+function dragStart(event) {
+	draggedElement = event.target;
+	event.dataTransfer.setData('text', event.target.textContent);
+}
+
+// Function to handle drag end
+function dragEnd(event) {
+	draggedElement = null;
+}
+
+// Function to handle drag over
+function dragOver(event) {
+	event.preventDefault();
+
+	// Get the position of the current tile
+	const rect = event.target.getBoundingClientRect();
+
+	// Position the drop indicator based on where the mouse is within the tile
+	const dropIndicator = document.getElementById('drop-indicator');
+	const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+	if (event.clientY - rect.top < rect.height / 2) {
+		dropIndicator.style.top = `${rect.top + scrollTop}px`;
+	} else {
+		dropIndicator.style.top = `${rect.bottom + scrollTop}px`;
+	}
+	dropIndicator.style.left = `${rect.left}px`;
+	dropIndicator.style.width = `${rect.width}px`;
+
+	// Make the drop indicator visible
+	dropIndicator.style.display = 'block';
+}
+
+function allowDrop(ev) {
+	ev.preventDefault();
+}
+
+// Function to handle drag leave
+function dragLeave(event) {
+	// Hide the drop indicator
+	document.getElementById('drop-indicator').style.display = 'none';
+}
+
+// Function to remove the drop indicator
+function removeDropIndicator() {
+	const dropIndicators = document.querySelectorAll('.drop-indicator');
+	dropIndicators.forEach(dropIndicator => dropIndicator.remove());
+}
+
+function drop(event) {
+    event.preventDefault();
+    const data = event.dataTransfer.getData('text');
+    const cell = createDraggableCell(data);
+
+    // Ensure we're working with the tile, not a child element
+    const tile = event.target.closest('.column-tile');
+    
+    // Get the index of the drop target (the tile being dragged over)
+    const dropTargetIndex = Array.from(tile.parentNode.children).indexOf(tile);
+
+    // Determine if we are dropping in the lower half of the tile
+    const dropLowerHalf = event.offsetY > (tile.offsetHeight / 2);
+
+    if (dropLowerHalf && dropTargetIndex < tile.parentNode.children.length - 1) {
+        // If we are in the lower half of the tile and not on the last tile, insert after the tile
+        tile.parentNode.insertBefore(cell, tile.parentNode.children[dropTargetIndex + 1]);
+    } else if (dropLowerHalf && dropTargetIndex === tile.parentNode.children.length - 1) {
+        // If we are in the lower half of the tile and this is the last tile, append the new tile at the end of the list
+        tile.parentNode.appendChild(cell);
+    } else {
+        // Otherwise, insert before the tile
+        tile.parentNode.insertBefore(cell, tile.parentNode.children[dropTargetIndex]);
+    }
+
+    // Remove the original item from columnB after the drop is completed
+    if (draggedElement) {
+        draggedElement.remove();
+        draggedElement = null;
+
+        // Update the height of column A tiles to match column B tiles
+        updateColumnAHeight();
+    }
+
+    // Hide the drop indicator
+    document.getElementById('drop-indicator').style.display = 'none';
+}
+
+    // Remove the original item from columnB after the drop is completed
+    if (draggedElement) {
+        draggedElement.remove();
+        draggedElement = null;
+
+        // Update the height of column A tiles to match column B tiles
+        updateColumnAHeight();
+    }
+
+    // Function to update the height of column A tiles to match column B tiles
+    function updateColumnAHeight() {
+        const columnATiles = document.querySelectorAll('#columnA div');
+        const columnBTiles = document.querySelectorAll('#columnB div');
+
+        for (let i = 0; i < columnATiles.length; i++) {
+            const heightB = columnBTiles[i].getBoundingClientRect().height;
+            columnATiles[i].style.height = heightB + 'px';
+        }
+    }
+
+    // Call the function to update the height initially
+    updateColumnAHeight();
+
+        // Function to handle the export as .txt
+        function exportAsTxt() {
+            const columnAData = document.querySelectorAll('#columnA div');
+            const columnBData = document.querySelectorAll('#columnB div');
+
+            let txtContent = '';
+
+            for (let i = 0; i < columnAData.length; i++) {
+                const columnANumber = columnAData[i].textContent;
+                const columnBText = columnBData[i].textContent;
+
+                txtContent += columnANumber + ' ' + columnBText + '\n';
+            }
+
+            const blob = new Blob([txtContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'export.txt';
+            a.click();
+
+            // Clean up
+            URL.revokeObjectURL(url);
+        }
+
+        // Add event listener to the export button
+        document.getElementById('exportButton').addEventListener('click', exportAsTxt);
+
+        // Store original conditions for restoring on discard
+        let originalConditions = [];
+
+        // Track if we are in edit mode
+        let isEditMode = false;
+
+        const editButton = document.getElementById('editButton');
+        const discardButton = document.getElementById('discardButton');
+        const keepButton = document.getElementById('keepButton');
+
+        // Add event listeners to the new buttons
+        editButton.addEventListener('click', toggleEditMode);
+        discardButton.addEventListener('click', discardChanges);
+        keepButton.addEventListener('click', keepChanges);
+
+        // Show the edit button initially
+        editButton.style.display = 'block';
+
+        // Set initial editable state for all conditions
+        updateEditableState();
+
+        function toggleEditMode() {
+            // Switch mode
+            isEditMode = !isEditMode;
+
+            // Store original conditions
+            if (isEditMode) {
+                originalConditions = getColumnBData();
+            }
+
+            // Show / hide buttons
+            editButton.style.display = isEditMode ? 'none' : 'block';
+            discardButton.style.display = isEditMode ? 'block' : 'none';
+            keepButton.style.display = isEditMode ? 'block' : 'none';
+
+            // Set editable state for all conditions
+            updateEditableState();
+        }
+
+		function updateEditableState() {
+			// Get all conditions
+			const conditions = document.querySelectorAll('#columnB div');
+
+			// Loop through each condition and set its editable state
+			conditions.forEach((condition) => {
+				// Set contentEditable attribute based on edit mode
+				condition.contentEditable = isEditMode;
+
+				// Toggle .edit-mode class based on edit mode
+				condition.classList.toggle('edit-mode', isEditMode);
+
+				// Disable / enable drag functionality based on edit mode
+				condition.draggable = !isEditMode;
+
+				// If we are not in edit mode and the content is empty, mark for deletion
+				if (!isEditMode && condition.textContent.trim() === '') {
+					condition.dataset.markedForDeletion = 'true';
+				}
+			});
+		}
+
+		function discardChanges() {
+			// Restore original conditions
+			let originalConditions = getColumnBData();
+
+			// Clean the original conditions
+			let cleanedOriginalConditions = cleanColumnBData(originalConditions);
+
+			// Update column B with cleaned original conditions
+			setColumnBData(cleanedOriginalConditions);
+
+			// Switch back to view mode
+			toggleEditMode();
+		}
+
+		function keepChanges() {
+			// Switch back to view mode
+			toggleEditMode();
+
+			// After a short delay, find all the text boxes marked for deletion and remove them
+			setTimeout(() => {
+				const markedForDeletion = document.querySelectorAll('[data-marked-for-deletion="true"]');
+				markedForDeletion.forEach(el => el.remove());
+
+				// Get column B's content
+				let columnBData = getColumnBData();
+
+				// Clean column B's content
+				let cleanedColumnBData = cleanColumnBData(columnBData);
+
+				// Update column B with cleaned content
+				setColumnBData(cleanedColumnBData); 
+
+				// Update column A's content to match column B
+				updateColumnA();
+
+				// Update the height of column A tiles to match column B tiles after removal
+				updateColumnAHeight();
+			}, 100);
+		}
+
+
+        function getColumnBData() {
+            // Get all conditions
+            const conditions = document.querySelectorAll('#columnB div');
+
+            // Map conditions to an array of their text content
+            return Array.from(conditions).map((condition) => condition.textContent);
+        }
+
+        function setColumnBData(data) {
+            const columnB = document.getElementById('columnB');
+
+            // Clear existing conditions
+            columnB.innerHTML = '';
+
+            // Loop through data and add each condition back to the column
+            data.forEach((text, index) => {
+                const cell = createDraggableCell(text, index + 1);
+                columnB.appendChild(cell);
+            });
+
+            // Update the height of column A tiles to match column B tiles
+            updateColumnAHeight();
+        }
+
+	document.getElementById('copyButton').addEventListener('click', copyToClipboard);
+
+	function copyToClipboard() {
+		const columnAData = document.querySelectorAll('#columnA div');
+		const columnBData = document.querySelectorAll('#columnB div');
+
+		let textContent = '';
+
+		for (let i = 0; i < columnAData.length; i++) {
+			const columnANumber = columnAData[i].textContent;
+			const columnBText = columnBData[i].textContent;
+
+			textContent += columnANumber + ' ' + columnBText + '\n';
+		}
+
+		navigator.clipboard.writeText(textContent)
+			.then(() => { alert('Content copied to clipboard.'); })
+			.catch((error) => { alert('Error copying text: ', error); });
+	}
+    </script>
+</body>
+</html>
+
