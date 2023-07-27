@@ -39,3 +39,10 @@ For the Wizlet to work properly, the following criteria must be met:
 -	The page must be fully loaded
 
 If you do not have the Wizlet, click the button below to copy its code to your clipboard. Then simply add a bookmark to your browser and paste the code in the Bookmark’s URL.
+
+
+
+
+
+
+
