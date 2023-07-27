@@ -1,5 +1,5 @@
 ---
 layout: page
-title: "About the Condition Cleaner"
+title: "About the Condition Wizard"
 permalink: /about/
 ---
