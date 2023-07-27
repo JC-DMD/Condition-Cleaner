@@ -7,7 +7,7 @@ permalink: /about/
 The Condition Wizard is a tool designed to manipulate a case’s conditions in a less-tedious way than through our typical process. It is specifically designed to convert conditions into a plain-text format that can be pasted right into an ordinance request template. It currently does not update the condition in EnerGov.
 
 ### File Input
-If the Condition Wizard was loaded [via the Wizlet](#ˏˋ-wizlet-ˎˊ) a .txt file will have automatically downloaded from the subject-case’s condition page (named CaseNumber_Conditions.txt). The user should use the file-input button (aka Browse…”, etc. depending on the browser) and select CaseNumber_Conditions.txt.
+If the Condition Wizard was loaded [**via the Wizlet**](#ˏˋ-wizlet-ˎˊ) a .txt file will have automatically downloaded from the subject-case’s condition page (named CaseNumber_Conditions.txt). The user should use the file-input button (aka Browse…”, etc. depending on the browser) and select CaseNumber_Conditions.txt.
 
 ### Formatting
 Upon load-in the Condition Wizard removes the following elements from the condition list:
@@ -37,12 +37,12 @@ For the Wizlet to work properly, the following criteria must be met:
 -	The user must be on a case’s “Conditions” page
 -	The case must have Unsatisfied conditions
 -	The page must be fully loaded
-
-If you do not have the Wizlet, click the button below to copy its code to your clipboard. Then simply add a bookmark to your browser and paste the code in the Bookmark’s URL.
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
