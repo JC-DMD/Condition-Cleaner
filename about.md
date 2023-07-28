@@ -38,10 +38,10 @@ For the Wizlet to work properly, the following criteria must be met:
 -	The case must have Unsatisfied conditions
 -	The page must be fully loaded
   
+To enable the Wizlet in your browser click the button below to copy its source-code to your clipboard. Then create a new bookmark and paste the code in the URL bar.
 
 
-<textarea id="myText">Hello, World!</textarea>
-<button id="copyButton">Copy to Clipboard</button>
+<button id="copyButton">Copy Wizlet Code to Clipboard</button>
 
 <script src="/Condtion-Wizard/script.js"></script>
 
