@@ -374,31 +374,47 @@ function drop(event) {
     // Call the function to update the height initially
     updateColumnAHeight();
 
-        // Function to handle the export as .txt
-        function exportAsTxt() {
-            const columnAData = document.querySelectorAll('#columnA div');
-            const columnBData = document.querySelectorAll('#columnB div');
+	function exportAsTxt() {
+		// Get the input file element
+		var fileInput = document.getElementById('fileInput');
 
-            let txtContent = '';
+		// Get the name of the input file
+		var inputFilename = fileInput.files[0].name;
 
-            for (let i = 0; i < columnAData.length; i++) {
-                const columnANumber = columnAData[i].textContent;
-                const columnBText = columnBData[i].textContent;
+		// Remove the file extension from the input filename
+		var baseFilename = inputFilename.split('.').slice(0, -1).join('.');
 
-                txtContent += columnANumber + ' ' + columnBText + '\n';
-            }
+		// Append "_wiz" to the base filename
+		var outputFilename = baseFilename + '_wiz.txt';
 
-            const blob = new Blob([txtContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
+		const columnAData = document.querySelectorAll('#columnA div');
+		const columnBData = document.querySelectorAll('#columnB div');
 
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'export.txt';
-            a.click();
+		let txtContent = '';
 
-            // Clean up
-            URL.revokeObjectURL(url);
-        }
+		for (let i = 0; i < columnAData.length; i++) {
+			const columnANumber = columnAData[i].textContent;
+			const columnBText = columnBData[i].textContent;
+
+			txtContent += columnANumber + ' ' + columnBText + '\n';
+		}
+
+		const blob = new Blob([txtContent], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement('a');
+		a.href = url;
+
+		// Use outputFilename as the filename for the exported file
+		a.download = outputFilename;
+		
+		a.click();
+
+		// Clean up
+		URL.revokeObjectURL(url);
+	}
+
+
 
         // Add event listener to the export button
         document.getElementById('exportButton').addEventListener('click', exportAsTxt);
