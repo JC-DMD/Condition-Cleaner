@@ -43,7 +43,8 @@ To enable the Wizlet in your browser click the button below to copy its source-c
 
 <button id="copyButton">Copy Wizlet Code to Clipboard</button>
 
-<script src="script.js"></script>
+<script src="/Condition-Wizard/script.js"></script>
+
 
 
 
