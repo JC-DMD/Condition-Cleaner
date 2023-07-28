@@ -3,12 +3,24 @@
 <head>
     <title>Condition Wizard</title>
 	<style>
+		header {
+			text-align: center;
+			font-family: Verdana, sans-serif;
+			font-size: 13pt
+			padding: 1px;
+			margin: 0; /* Remove margins from the header */
+		}
+		
+		h1 {
+			margin: 0;
+		}
+		
 		body {
-		font-family: Arial, sans-serif;
+		font-family: Verdana, sans-serif;
 		}
 
 		mark {
-			background-color: yellow;
+			background-color: #f4f186;
 			color: black;
 		}
 
@@ -25,7 +37,6 @@
 			flex-grow: 1;
 			display: flex;
 			flex-direction: column;
-			font-family: "Times New Roman", Times, serif;
 		}
 
 		#columnA div {
@@ -33,7 +44,7 @@
 			padding: 10px;
 			margin-bottom: -0.01px;
 			word-wrap: break-word;
-			font-size: 12pt;
+			font-size: 10pt;
 			box-sizing: border-box; /* Include border and padding in height calculation */
 		}
 
@@ -41,7 +52,6 @@
 			flex-grow: 1;
 			display: flex;
 			flex-direction: column;
-			font-family: "Times New Roman", Times, serif;
 		}
 
 		#columnB div {
@@ -49,14 +59,13 @@
 			padding: 10px;
 			margin-bottom: -0.01px;
 			word-wrap: break-word;
-			font-size: 12pt;
+			font-size: 10pt;
 			box-sizing: border-box; /* Include border and padding in height calculation */
 		}
 
 
 		#actionButtons {
 			display: flex;
-			justify-content: flex-end; /* Align the buttons to the right */
 		}
 
         /* Add a custom class for the highlighted number */
@@ -78,16 +87,22 @@
             cursor: pointer;
         }
 
-	.edit-mode div {
-    	border: 2px solid #0f0;
-	}
+		.edit-mode #container div {
+			background-color: #5d6d7e;
+			color: #fefefe;
+		}
+
 
     </style>
 </head>
 <body>
-<input type="file" id="fileInput" />
+  <header>
+    <h1>🗲 Condition Wizard 🗲</h1>
+  </header>
+<a href="/Condition-Wizard/about/" target="_blank">About the Condition Wizard</a>
+<br><br>
 <div id="editControls">
-    <button class="myButton" id="editButton" style="display: none;">Edit Conditions</button>
+	<button class="myButton" id="editButton" style="display: none;" >Edit Conditions</button>
     <div id="actionButtons">
         <button class="myButton" id="keepButton" style="display: none;">Keep Changes</button>
         <button class="myButton" id="discardButton" style="display: none;">Discard Changes</button>
@@ -104,8 +119,7 @@
 
 <button id="exportButton">Export as .txt</button>
 <br><br>
-<a href="/Condition-Wizard/about/" target="_blank">About the Condition Wizard</a>
-	
+<input type="file" id="fileInput" />	
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
 
 <script>
@@ -409,23 +423,27 @@ function drop(event) {
         // Set initial editable state for all conditions
         updateEditableState();
 
-        function toggleEditMode() {
-            // Switch mode
-            isEditMode = !isEditMode;
+		function toggleEditMode() {
+			// Switch mode
+			isEditMode = !isEditMode;
 
-            // Store original conditions
-            if (isEditMode) {
-                originalConditions = getColumnBData();
-            }
+			// Store original conditions
+			if (isEditMode) {
+				originalConditions = getColumnBData();
+			}
 
-            // Show / hide buttons
-            editButton.style.display = isEditMode ? 'none' : 'block';
-            discardButton.style.display = isEditMode ? 'block' : 'none';
-            keepButton.style.display = isEditMode ? 'block' : 'none';
+			// Show / hide buttons
+			editButton.style.display = isEditMode ? 'none' : 'block';
+			discardButton.style.display = isEditMode ? 'block' : 'none';
+			keepButton.style.display = isEditMode ? 'block' : 'none';
 
-            // Set editable state for all conditions
-            updateEditableState();
-        }
+			// Set editable state for all conditions
+			updateEditableState();
+
+			// Toggle 'edit-mode' class (style) 
+			document.body.classList.toggle('edit-mode');
+		}
+
 
 		function updateEditableState() {
 			// Get all conditions
@@ -459,6 +477,9 @@ function drop(event) {
 			// Update column B with cleaned original conditions
 			setColumnBData(cleanedOriginalConditions);
 
+			// Update the height of column A tiles to match column B tiles after removal
+			updateColumnAHeight();
+			
 			// Switch back to view mode
 			toggleEditMode();
 		}
@@ -536,4 +557,5 @@ function drop(event) {
     </script>
 </body>
 </html>
+
 
