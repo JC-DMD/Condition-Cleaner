@@ -38,8 +38,15 @@ For the Wizlet to work properly, the following criteria must be met:
 -	The case must have Unsatisfied conditions
 -	The page must be fully loaded
   
-  
-  
+
+
+<textarea id="myText">Hello, World!</textarea>
+<button id="copyButton">Copy to Clipboard</button>
+
+<script src="/Condtion-Wizard/script.js"></script>
+
+
+
   
   
   
