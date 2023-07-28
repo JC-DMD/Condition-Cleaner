@@ -1,0 +1,80 @@
+void function(){
+    function a(a){
+        var b = document.createElement("div");
+        b.style.cssText = "display: block; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(0,0,0,0.4);";
+        var c = document.createElement("div");
+        c.style.cssText = "background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%; text-align: left; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-height: 80vh; overflow-y: auto;";
+        c.innerHTML = a;
+        b.appendChild(c);
+        document.body.appendChild(b);
+        b.addEventListener("click", function(a){
+            if(a.target === b){
+                b.style.display = "none";
+                document.body.style.overflow = "";
+            }
+        });
+        document.body.style.overflow = "hidden";
+        var l = document.getElementById("manage-case-header-text");
+        var m = l ? l.innerText.split(" ")[0] : "unknown";
+        var i = document.createElement("button");
+        i.textContent = "🗲 Open Condition Wizard 🗲";
+        i.style.marginBottom = "10px";
+        i.style.backgroundColor = "black";
+        i.style.color = "white";
+        i.style.fontWeight = "bold";
+        i.onclick = function(){
+            window.open("https://jc-dmd.github.io/Condition-Wizard/");
+            var a = f.join("\r\n");
+            var b = "data:text/plain;charset=utf-8," + encodeURIComponent(a);
+            var c = document.createElement("a");
+            c.setAttribute("href", b);
+            c.setAttribute("download", m + "_conditions.txt");
+            c.click();
+        };
+        c.insertBefore(i, c.firstChild);
+        var h = document.createElement("br");
+        c.insertBefore(h, i.nextSibling);
+        var e = document.createElement("button");
+        e.textContent = "Copy to clipboard";
+        e.style.marginRight = "10px";
+        e.onclick = function(){
+            var a = f.map((a,b) => `${b+1}. ${a}`).join("\n");
+            navigator.clipboard.writeText(a);
+        };
+        c.insertBefore(e, h.nextSibling);
+        var g = document.createElement("button");
+        g.textContent = "Save to .txt file";
+        g.style.marginRight = "10px";
+        g.onclick = function(){
+            var a = f.join("\r\n");
+            var b = "data:text/plain;charset=utf-8," + encodeURIComponent(a);
+            var c = document.createElement("a");
+            c.setAttribute("href", b);
+            c.setAttribute("download", m + "_conditions.txt");
+            c.click();
+        };
+        c.insertBefore(g, e.nextSibling);
+    }
+    var b = Array.from(document.querySelectorAll("div[ng-if='!item.data']")).find(a => a.textContent.includes("Unsatisfied"));
+    if(!b) return void a("<p>No Conditions Found</p>");
+    var c = parseInt(b.textContent.match(/\d+/)[0]);
+    var d = Array.from(document.querySelectorAll(".condition-header-descr,.condition-detail-descr")).filter(conditionElement => conditionElement.textContent.trim() !== '');
+    if(d.length < c) return void a("<p>Not all conditions have been loaded. Please scroll to the bottom of the page and try again.</p>");
+    var e = document.querySelectorAll("tt-task-card[name='condition-card']");
+    var f = [];
+    Array.from(e).forEach(function(a){
+        var b = a.querySelector("md-switch[aria-checked]");
+        if(!b || "true" !== b.getAttribute("aria-checked")){
+            var c = a.querySelector(".condition-header-descr");
+            var d = a.querySelector(".condition-detail-descr");
+            if(c) f.push(c.innerText);
+            if(d) f.push(d.innerText);
+        }
+    });
+    var g = "<table style='border-collapse: collapse;'>";
+    f.forEach(function(a, b){
+        g += `<tr><td style='border:1px solid #ddd; padding:8px; vertical-align: top; text-align: right;'>${b+1}.</td><td style='border:1px solid #ddd; padding:8px;'>${a}</td></tr>`;
+    });
+    g += "</table>";
+    a(g);
+}();
