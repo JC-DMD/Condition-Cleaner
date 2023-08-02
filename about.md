@@ -4,10 +4,10 @@ title: "About the Condition Wizard"
 permalink: /about/
 ---
 # 🗲 About the Condition Wizard 🗲
-The Condition Wizard is a tool designed to manipulate a case’s conditions in a less-tedious way than through our typical process. It is specifically designed to convert conditions into a plain-text format that can be pasted right into an ordinance request template. It currently does not update the condition in EnerGov.
+The Condition Wizard is a tool designed to manipulate a case’s conditions in a less-tedious way than through our typical process. It is specifically designed to convert conditions into a plain-text format that can be pasted right into an ordinance request template. For now, conditions still must be manually updated in EnerGov following any Wizard-usage.
 
 ### File Input
-If the Condition Wizard was loaded [**via the Wizlet**](#ˏˋ-wizlet-ˎˊ) a .txt file will have automatically downloaded from the subject-case’s condition page (named CaseNumber_Conditions.txt). The user should use the file-input button (aka Browse…”, etc. depending on the browser) and select CaseNumber_Conditions.txt.
+If the Condition Wizard was loaded [**via the Wizlet**](#ˏˋ-wizlet-ˎˊ) a .txt file will have automatically downloaded from the subject-case’s condition page (named CaseNumber_Conditions.txt). The user should use the file-input button (aka "Browse…”, etc. depending on the browser) and select CaseNumber_Conditions.txt.
 
 ### Formatting
 Upon load-in the Condition Wizard removes the following elements from the condition list:
