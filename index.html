@@ -16,6 +16,16 @@
 			margin: 0;
 		}
 		
+		h2#subheader {
+			position: absolute; /* Positions the subheader independently */
+			left: 50%; /* Aligns the left edge of the subheader to the center of the container */
+			transform: translateX(-50%); /* Shifts the subheader to the left by half of its width */
+			font-size: 15pt;
+			padding: 0px;
+			margin: 0;
+			margin-bottom: 4px;
+		}
+		
 		body {
 		font-family: Verdana, sans-serif;
 		}
@@ -35,7 +45,7 @@
 		}
 
 		#columnA {
-			flex-grow: 1;
+			flex-grow: 0;
 			display: flex;
 			flex-direction: column;
 		}
@@ -69,10 +79,10 @@
 			display: flex;
 		}
 
-        /* Add a custom class for the highlighted number */
-        .highlighted {
-            font-weight: bold;
-        }
+        	/* Add a custom class for the highlighted number */
+        	.highlighted {
+            	font-weight: bold;
+        	}
 
 		.drop-indicator {
 			position: absolute;
@@ -82,17 +92,27 @@
 			transition: top 0.2s, left 0.2s, width 0.2s;
 		}
 
-        /* Add a custom class for the export button */
-        #exportButton {
-            margin-top: 10px;
-            cursor: pointer;
-        }
+        	/* Add a custom class for the export button */
+        	#exportButton {
+            	margin-top: 10px;
+           	cursor: pointer;
+        	}
 
+		#container div {
+			transition: background-color 0.35s, color 0.1s;
+		}
+
+		#controlsContainer {
+			display: flex;
+			justify-content: space-between; /* Optional: This will spread the items across the full width */
+			align-items: center; /* Optional: This will vertically center the items */
+			position: relative; /* Allows positioning of the subheader */
+		}
+		
 		.edit-mode #container div {
 			background-color: #5d6d7e;
 			color: #fefefe;
 		}
-
 
     </style>
 </head>
@@ -102,12 +122,16 @@
   </header>
 <a href="/Condition-Wizard/about/" target="_blank">About the Condition Wizard</a>
 <br><br>
-<div id="editControls">
-	<button class="myButton" id="editButton" style="display: none;" >Edit Conditions</button>
-    <div id="actionButtons">
-        <button class="myButton" id="keepButton" style="display: none;">Keep Changes</button>
-        <button class="myButton" id="discardButton" style="display: none;">Discard Changes</button>
+
+<div id="controlsContainer">
+    <div id="editControls" style="display: none;">
+        <button class="myButton" id="editButton" style="display: none;">Edit Conditions</button>
+        <div id="actionButtons">
+            <button class="myButton" id="keepButton" style="display: none;">Keep Changes</button>
+            <button class="myButton" id="discardButton" style="display: none;">Discard Changes</button>
+        </div>
     </div>
+    <h2 id="subheader" style="display: none;">No file selected</h2>
 </div>
 
 <div id="container">
@@ -116,47 +140,108 @@
 	<div id="drop-indicator" class="drop-indicator"></div>
 </div>
 
-<button id="copyButton">Copy to Clipboard</button>
+<button id="exportButton" style="display: none;">Export Data</button>
 
-<button id="exportButton">Export as .txt</button>
 <br><br>
 <input type="file" id="fileInput" />	
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
 
 <script>
-    document.getElementById('fileInput').addEventListener('change', handleFile, false);
+document.getElementById('fileInput').addEventListener('change', handleFile, false);
+let currentData = [];
+let jsonFileName;
+window.addEventListener('message', function(event) {
+    // Check the origin of the data!
+	if (!event.origin.startsWith("https://egprdapp.kcmogis.kc.lan")) {
+		console.log('Wrong origin:', event.origin);
+		return;
+	}
+
+    // Everything is ok, we can process the data
+    const data = event.data;
+    
+	const fileName = data.filename;  // Get the name of the file from the message
+	const fileNameWithoutExtension = fileName.split('_')[0];
+    jsonFileName = fileNameWithoutExtension + '_wiz.json';  // Create the name for the JSON file
+	
+	// Update the subheader content with the selected file name without extension
+    document.getElementById('subheader').textContent = fileNameWithoutExtension;
+
+    // Display the subheader
+    document.getElementById('subheader').style.display = 'block';
+	
+    // Call the parseCsv function on the received CSV string
+    const parsedData = parseCsv(data.csvString);
+    
+    // Filter out rows without a value in the second column
+    const filteredData = parsedData.filter(row => row['Description']);
+
+	displayCsvData(parsedData);
+});
+
+function parseCsv(csvString) {
+    // Split the string into lines
+    const lines = csvString.split('\n');
+    
+    // Get the headers from the first line without removing double quotes
+    const headers = lines[0].split(',');
+
+    console.log("Headers: ", headers);  // Log the headers
+
+    // Map over the remaining lines
+    const data = lines.slice(1).map(line => {
+        // Split the line into fields, respecting quotation marks
+        const fields = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+        
+        // Remove the quotation marks from the fields
+        const cleanedFields = fields.map(field => field.startsWith('"') ? field.slice(1, -1).replace(/""/g, '"') : field);
+        
+        // Combine the headers and fields into an object
+        let obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = cleanedFields[i];
+        });
+
+        console.log(obj);  // Log the object for each line
+        
+        return obj;
+    });
+    // Filter out rows where 'Description' is undefined or empty
+    const filteredData = data.filter(row => row['"Description"'] !== undefined && row['"Description"'].trim() !== '');
+
+    currentData = JSON.parse(JSON.stringify(filteredData));
+
+    return filteredData;
+}
 
 function handleFile(event) {
     const file = event.target.files[0];
+    console.log(file.type);
+	const fileName = file.name;  // Get the name of the uploaded file
+	const fileNameWithoutExtension = fileName.split('_')[0];
+    jsonFileName = fileNameWithoutExtension + '_wiz.json';  // Create the name for the JSON file
     const reader = new FileReader();
 
+    // Update the subheader content with the selected file name without extension
+    document.getElementById('subheader').textContent = fileNameWithoutExtension;
+
+    // Display the subheader
+    document.getElementById('subheader').style.display = 'block';
+	
     reader.onload = function (e) {
         const data = e.target.result;
 
-        if (file.type === "text/plain") {
-            const columnBData = data.split('\n').filter(Boolean);
-            const cleanedColumnBData = cleanColumnBData(columnBData);
+        // Check if the file extension is .csv
+        if (fileName.endsWith('.csv')) {
+            // Parse CSV data
+            const parsedData = parseCsv(data);
 
-            displayColumnData(columnBData, cleanedColumnBData);
-        } else if (file.type.includes("sheet") || file.type.includes("excel")) {
-            const workbook = XLSX.read(data, { type: 'binary' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-            // Only consider data from row 5 and onwards
-            const columnBData = jsonData.slice(4).map(row => row[1]).filter(Boolean);
-            const cleanedColumnBData = cleanColumnBData(columnBData);
-
-            displayColumnData(columnBData, cleanedColumnBData);
-        }
+            // Display parsed CSV data
+            displayCsvData(parsedData);
+        } 
     };
 
-    if (file.type === "text/plain") {
-        reader.readAsText(file);
-    } else if (file.type.includes("sheet") || file.type.includes("excel")) {
-        reader.readAsBinaryString(file);
-    }
+    reader.readAsText(file);
 }
 
 function hasOddNumberOfBrackets(value) {
@@ -170,7 +255,10 @@ function hasOddNumberOfBrackets(value) {
 
 function cleanColumnBData(columnBData) {
     const cleanedColumnBData = columnBData.map(value => {
-        // Highlight the text within brackets
+        // Remove any existing <mark> and </mark> tags
+        value = value.replace(/<mark>/g, '').replace(/<\/mark>/g, '');
+		
+		// Highlight the text within brackets
         value = value.replace(/\[(.*?)\]/gs, '<mark>[$1]</mark>');
 
         // Highlight the underscore characters
@@ -214,26 +302,38 @@ window.onresize = function(event) {
     updateColumnAHeight();
 };
 
-// Function to display column data
-function displayColumnData(columnBData, cleanedColumnBData) {
+// Function to display CSV data
+function displayCsvData(parsedData) {
     const columnA = document.getElementById('columnA');
     const columnB = document.getElementById('columnB');
 
     columnA.innerHTML = ''; // Clear previous data in column A
     columnB.innerHTML = ''; // Clear previous data in column B
 
-    // Create fixed cells in column A based on the number of rows in cleanedColumnBData
-    for (let i = 0; i < cleanedColumnBData.length; i++) {
+    // Create fixed cells in column A based on the number of rows in parsedData
+    for (let i = 0; i < parsedData.length; i++) {
         const fixedCell = createFixedCell(i + 1);
         columnA.appendChild(fixedCell);
     }
 
-    // Skip the first element (header) of cleanedColumnBData
-    for (let i = 0; i < cleanedColumnBData.length; i++) {
-        const cell = createDraggableCell(cleanedColumnBData[i], i + 1);
+    // Iterate over each row of data
+    for (let i = 0; i < parsedData.length; i++) {
+        // Get the value from the 'Description' column for this row
+        let columnBValue = parsedData[i]['"Description"'];
+	    
+        // Clean the value
+        columnBValue = cleanColumnBData([columnBValue])[0]; 
+
+        // Create a draggable cell with the column B value
+        const cell = createDraggableCell(columnBValue, parsedData[i], i + 1);
+
+        // Append the cell to column B
         columnB.appendChild(cell);
     }
-
+    document.getElementById('editControls').style.display = 'block';
+    document.getElementById('exportButton').style.display = 'block';
+	
+	
     // Update the height of column A tiles to match column B tiles
     updateColumnAHeight();
 }
@@ -246,18 +346,36 @@ function createFixedCell(value) {
 	return div;
 }
 
-// Function to create draggable cell in column B
-function createDraggableCell(value, tileId) {
-	const div = document.createElement('div');
-	div.innerHTML = value; // Use innerHTML instead of textContent
-	div.classList.add('column-tile');
-	div.setAttribute('draggable', true);
-	div.setAttribute('data-tile-id', tileId); // Assign a unique identifier to the tile
-	div.addEventListener('dragstart', dragStart);
-	div.addEventListener('dragend', dragEnd); // Add dragend event listener
-	div.addEventListener('dragover', dragOver); // Add dragover event listener
-	div.addEventListener('dragleave', dragLeave); // Add dragleave event listener
-	return div;
+function createDraggableCell(columnBValue, cellObject, order) {
+    // Create a new div element
+    const newDiv = document.createElement('div');
+
+    // Set the HTML content of the div
+    newDiv.innerHTML = columnBValue;
+
+    // Add the draggable attribute and set it to true
+    ///newDiv.setAttribute('draggable', true); COMMENTED OUT 
+
+    // Add the class 'draggable'
+    ///newDiv.classList.add('draggable'); COMMENTED OUT 
+
+    // Add the 'data' attribute and set it to the JSON string of the cell object
+    newDiv.setAttribute('data', JSON.stringify(cellObject));
+
+    // Add the 'order' attribute and set it to the order parameter
+    newDiv.setAttribute('order', order);
+
+    // Add event listeners for drag events
+    newDiv.addEventListener('dragstart', dragStart);
+    newDiv.addEventListener('dragend', dragEnd);
+
+	newDiv.addEventListener('keydown', function(e) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+		}
+	});
+
+    return newDiv;
 }
 
 // Function to handle drag start
@@ -351,228 +469,241 @@ function drop(event) {
     document.getElementById('drop-indicator').style.display = 'none';
 }
 
-    // Remove the original item from columnB after the drop is completed
-    if (draggedElement) {
-        draggedElement.remove();
-        draggedElement = null;
+// Function to update the height of column A tiles to match column B tiles
+function updateColumnAHeight() {
+	const columnATiles = document.querySelectorAll('#columnA div');
+	const columnBTiles = document.querySelectorAll('#columnB div');
 
-        // Update the height of column A tiles to match column B tiles
-        updateColumnAHeight();
-    }
-
-    // Function to update the height of column A tiles to match column B tiles
-    function updateColumnAHeight() {
-        const columnATiles = document.querySelectorAll('#columnA div');
-        const columnBTiles = document.querySelectorAll('#columnB div');
-
-        for (let i = 0; i < columnATiles.length; i++) {
-            const heightB = columnBTiles[i].getBoundingClientRect().height;
-            columnATiles[i].style.height = heightB + 'px';
-        }
-    }
-
-    // Call the function to update the height initially
-    updateColumnAHeight();
-
-	function exportAsTxt() {
-		// Get the input file element
-		var fileInput = document.getElementById('fileInput');
-
-		// Get the name of the input file
-		var inputFilename = fileInput.files[0].name;
-
-		// Remove the file extension from the input filename
-		var baseFilename = inputFilename.split('.').slice(0, -1).join('.');
-
-		// Append "_wiz" to the base filename
-		var outputFilename = baseFilename + '_wiz.txt';
-
-		const columnAData = document.querySelectorAll('#columnA div');
-		const columnBData = document.querySelectorAll('#columnB div');
-
-		let txtContent = '';
-
-		for (let i = 0; i < columnAData.length; i++) {
-			const columnANumber = columnAData[i].textContent;
-			const columnBText = columnBData[i].textContent;
-
-			txtContent += columnANumber + ' ' + columnBText + '\n';
-		}
-
-		const blob = new Blob([txtContent], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-
-		const a = document.createElement('a');
-		a.href = url;
-
-		// Use outputFilename as the filename for the exported file
-		a.download = outputFilename;
-		
-		a.click();
-
-		// Clean up
-		URL.revokeObjectURL(url);
+	for (let i = 0; i < columnATiles.length; i++) {
+		const heightB = columnBTiles[i].getBoundingClientRect().height;
+        	columnATiles[i].style.height = heightB + 'px';
 	}
+}
 
+// Call the function to update the height initially
+updateColumnAHeight();
 
+function exportData() {
+    // Get the data from column B
+    const data = getColumnBData();
 
-        // Add event listener to the export button
-        document.getElementById('exportButton').addEventListener('click', exportAsTxt);
+    // Process the data to convert HTML to plain text
+    const cleanedData = data.map(item => {
+        let description = item['"Description"'];
+        // Create a temporary div element
+        const div = document.createElement('div');
+        // Set the innerHTML to the description
+        div.innerHTML = description;
+        // Retrieve the textContent, which will be the plain text
+        description = div.textContent || div.innerText || '';
+        item['"Description"'] = description;
+        return item;
+    });
 
-        // Store original conditions for restoring on discard
-        let originalConditions = [];
+    // Convert the cleaned data to a JSON string
+    const json = JSON.stringify(cleanedData, null, 2);
 
-        // Track if we are in edit mode
-        let isEditMode = false;
+    // Create a Blob object from the JSON string
+    const blob = new Blob([json], { type: 'application/json' });
 
-        const editButton = document.getElementById('editButton');
-        const discardButton = document.getElementById('discardButton');
-        const keepButton = document.getElementById('keepButton');
+    // Create a URL for the Blob object
+    const url = URL.createObjectURL(blob);
 
-        // Add event listeners to the new buttons
-        editButton.addEventListener('click', toggleEditMode);
-        discardButton.addEventListener('click', discardChanges);
-        keepButton.addEventListener('click', keepChanges);
+    // Create a temporary anchor element
+    const a = document.createElement('a');
 
-        // Show the edit button initially
-        editButton.style.display = 'block';
+    // Set the href of the anchor to the Blob URL
+    a.href = url;
 
-        // Set initial editable state for all conditions
-        updateEditableState();
+    // Set the download attribute to specify the file name
+    a.download = jsonFileName;
 
-		function toggleEditMode() {
-			// Switch mode
-			isEditMode = !isEditMode;
+    // Trigger a click on the anchor to start the download
+    a.click();
+}
 
-			// Store original conditions
-			if (isEditMode) {
-				originalConditions = getColumnBData();
-			}
+// Add event listener to the export button
+document.getElementById('exportButton').addEventListener('click', exportData);
 
-			// Show / hide buttons
-			editButton.style.display = isEditMode ? 'none' : 'block';
-			discardButton.style.display = isEditMode ? 'block' : 'none';
-			keepButton.style.display = isEditMode ? 'block' : 'none';
+// Store original conditions for restoring on discard
+let originalConditions = [];
 
-			// Set editable state for all conditions
-			updateEditableState();
+// Track if we are in edit mode
+let isEditMode = false;
 
-			// Toggle 'edit-mode' class (style) 
-			document.body.classList.toggle('edit-mode');
-		}
+document.addEventListener('DOMContentLoaded', (event) => {
+    const editButton = document.getElementById('editButton');
+    const discardButton = document.getElementById('discardButton');
+    const keepButton = document.getElementById('keepButton');
 
+    // Add event listeners to the new buttons
+    editButton.addEventListener('click', toggleEditMode);
+    discardButton.addEventListener('click', discardChanges);
+    keepButton.addEventListener('click', keepChanges);
 
-		function updateEditableState() {
-			// Get all conditions
-			const conditions = document.querySelectorAll('#columnB div');
+    // Show the edit button initially
+    editButton.style.display = 'block';
+});
 
-			// Loop through each condition and set its editable state
-			conditions.forEach((condition) => {
-				// Set contentEditable attribute based on edit mode
-				condition.contentEditable = isEditMode;
+// Set initial editable state for all conditions
+updateEditableState();
 
-				// Toggle .edit-mode class based on edit mode
-				condition.classList.toggle('edit-mode', isEditMode);
+// Store the observers in a global variable so we can disconnect them later
+let observers = [];
 
-				// Disable / enable drag functionality based on edit mode
-				condition.draggable = !isEditMode;
+function toggleEditMode() {
+    // Switch mode
+    isEditMode = !isEditMode;
 
-				// If we are not in edit mode and the content is empty, mark for deletion
-				if (!isEditMode && condition.textContent.trim() === '') {
-					condition.dataset.markedForDeletion = 'true';
-				}
-			});
-		}
+    // Store original conditions
+    if (isEditMode) {
+        originalConditions = getColumnBData();
 
-		function discardChanges() {
-			// Restore original conditions
-			let originalConditions = getColumnBData();
-
-			// Clean the original conditions
-			let cleanedOriginalConditions = cleanColumnBData(originalConditions);
-
-			// Update column B with cleaned original conditions
-			setColumnBData(cleanedOriginalConditions);
-
-			// Update the height of column A tiles to match column B tiles after removal
-			updateColumnAHeight();
-			
-			// Switch back to view mode
-			toggleEditMode();
-		}
-
-		function keepChanges() {
-			// Switch back to view mode
-			toggleEditMode();
-
-			// After a short delay, find all the text boxes marked for deletion and remove them
-			setTimeout(() => {
-				const markedForDeletion = document.querySelectorAll('[data-marked-for-deletion="true"]');
-				markedForDeletion.forEach(el => el.remove());
-
-				// Get column B's content
-				let columnBData = getColumnBData();
-
-				// Clean column B's content
-				let cleanedColumnBData = cleanColumnBData(columnBData);
-
-				// Update column B with cleaned content
-				setColumnBData(cleanedColumnBData); 
-
-				// Update column A's content to match column B
-				updateColumnA();
-
-				// Update the height of column A tiles to match column B tiles after removal
-				updateColumnAHeight();
-			}, 100);
-		}
-
-
-        function getColumnBData() {
-            // Get all conditions
-            const conditions = document.querySelectorAll('#columnB div');
-
-            // Map conditions to an array of their text content
-            return Array.from(conditions).map((condition) => condition.textContent);
-        }
-
-        function setColumnBData(data) {
-            const columnB = document.getElementById('columnB');
-
-            // Clear existing conditions
-            columnB.innerHTML = '';
-
-            // Loop through data and add each condition back to the column
-            data.forEach((text, index) => {
-                const cell = createDraggableCell(text, index + 1);
-                columnB.appendChild(cell);
+        // Set up ResizeObservers for each cell in column B
+        const cells = document.querySelectorAll('#columnB div');
+        cells.forEach(cell => {
+            let observer = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    console.log(`Size of ${entry.target} changed to ${entry.contentRect.width}px x ${entry.contentRect.height}px`);
+                    updateColumnAHeight();  // Call the function to update the height of column A
+                }
             });
+            observer.observe(cell);
+            observers.push(observer);  // Save the observer so we can disconnect it later
+        });
+    } else {
+        // Disconnect all the observers when exiting the edit mode
+        observers.forEach(observer => observer.disconnect());
+        observers = [];
+    }
 
-            // Update the height of column A tiles to match column B tiles
-            updateColumnAHeight();
-        }
+    // Show / hide buttons
+    editButton.style.display = isEditMode ? 'none' : 'block';
+    discardButton.style.display = isEditMode ? 'block' : 'none';
+    keepButton.style.display = isEditMode ? 'block' : 'none';
+    exportButton.style.display = isEditMode ? 'none' : 'block';
 
-	document.getElementById('copyButton').addEventListener('click', copyToClipboard);
+    // Set editable state for all conditions
+    updateEditableState();
 
-	function copyToClipboard() {
-		const columnAData = document.querySelectorAll('#columnA div');
-		const columnBData = document.querySelectorAll('#columnB div');
+    // Toggle 'edit-mode' class (style) 
+    document.body.classList.toggle('edit-mode');
+}
 
-		let textContent = '';
+function updateEditableState() {
+	// Get all conditions
+	const conditions = document.querySelectorAll('#columnB div');
 
-		for (let i = 0; i < columnAData.length; i++) {
-			const columnANumber = columnAData[i].textContent;
-			const columnBText = columnBData[i].textContent;
+	// Loop through each condition and set its editable state
+	conditions.forEach((condition) => {
+		// Set contentEditable attribute based on edit mode
+		condition.contentEditable = isEditMode;
 
-			textContent += columnANumber + ' ' + columnBText + '\n';
+		// Toggle .edit-mode class based on edit mode
+		condition.classList.toggle('edit-mode', isEditMode);
+
+		// Disable / enable drag functionality based on edit mode
+		condition.draggable = !isEditMode;
+
+		// If we are not in edit mode and the content is empty, mark for deletion
+		if (!isEditMode && condition.textContent.trim() === '') {
+			condition.dataset.markedForDeletion = 'true';
 		}
+	});
+}
 
-		navigator.clipboard.writeText(textContent)
-			.then(() => { alert('Content copied to clipboard.'); })
-			.catch((error) => { alert('Error copying text: ', error); });
-	}
-    </script>
+function discardChanges() {
+	console.log('Current data:', currentData);
+	// Restore original conditions
+	displayCsvData(currentData);
+
+	// Update the height of column A tiles to match column B tiles after removal
+	updateColumnAHeight();
+	
+	// Switch back to view mode
+	toggleEditMode();
+}
+
+function keepChanges() {
+	console.log('keepChanges function called');  // Debugging log
+	
+	// Switch back to view mode
+	toggleEditMode();
+
+	// After a short delay, find all the text boxes marked for deletion and remove them
+	setTimeout(() => {
+		const markedForDeletion = document.querySelectorAll('[data-marked-for-deletion="true"]');
+		markedForDeletion.forEach(el => el.remove());
+
+		// Get column B's content
+		let columnBData = getColumnBData();
+
+		console.log("columnBData before cleaning:", columnBData); // Debugging log
+
+		// Extract descriptions from cell objects, or return an empty string if a cell object doesn't have a "Description" property
+		const descriptions = columnBData.map(cellObject => cellObject['"Description"'] || "");
+
+		// Clean column B's content
+		let cleanedColumnBData = cleanColumnBData(descriptions);
+
+		// Replace descriptions in cell objects with cleaned descriptions
+		const updatedCellObjects = columnBData.map((cellObject, index) => {
+			return { ...cellObject, '"Description"': cleanedColumnBData[index] };
+		});
+
+		console.log("updatedCellObjects after cleaning:", updatedCellObjects); // Debugging log
+
+		// Update column B with updated cell objects
+		setColumnBData(updatedCellObjects);
+
+		// Update the running copy of data
+		currentData = JSON.parse(JSON.stringify(updatedCellObjects));
+
+		console.log("currentData after updating:", currentData); // Debugging log
+
+		// Update column A's content to match column B
+		updateColumnA();
+
+		// Update the height of column A tiles to match column B tiles after removal
+		updateColumnAHeight();
+	}, 100);
+}
+
+function getColumnBData() {
+    // Get all cells in column B
+    const cells = Array.from(document.querySelectorAll('#columnB div'));
+
+    // Extract and parse the cell objects from the data attributes, and update the Description field with the current text content
+    const cellObjects = cells.map(cell => {
+        const cellObject = JSON.parse(cell.getAttribute('data'));
+        let description = cell.innerHTML;  // Use innerHTML to get the content with HTML tags
+
+        // Preserve <br> tags, but remove all other tags
+        description = description.replace(/<\/?[^b][^r][^>]*>/g, '');
+
+        cellObject['"Description"'] = description;
+        return cellObject;
+    });
+
+    return cellObjects;
+}
+
+function setColumnBData(data) {
+	const columnB = document.getElementById('columnB');
+
+	// Clear existing conditions
+	columnB.innerHTML = '';
+
+	// Loop through data and add each condition back to the column
+	data.forEach((cellObject, index) => {
+		const cell = createDraggableCell(cellObject['"Description"'], cellObject, index + 1);
+		columnB.appendChild(cell);
+	});
+
+	// Update the height of column A tiles to match column B tiles
+	updateColumnAHeight();
+}
+
+</script>
 </body>
 </html>
-
-
