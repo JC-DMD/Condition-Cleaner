@@ -44,7 +44,7 @@ document.getElementById('copyButton').addEventListener('click', function() {
     navigator.clipboard.writeText(hiddenText)
         .catch(err => console.error('Error copying text: ', err));
 });
-<script>
+</script>
 
 
 
