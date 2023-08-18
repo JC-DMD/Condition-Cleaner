@@ -3,6 +3,7 @@ layout: page
 title: "About the Condition Wizard"
 permalink: /about/
 ---
+<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 # 🗲 About the Condition Wizard 🗲
 The Condition Wizard is a tool designed to manipulate a case’s conditions in a less-tedious way than through our typical process. It is specifically designed to convert conditions into a plain-text format that can be pasted right into an ordinance request template. Completed conditions can be exported as a .JSON file and reloaded to their specific case's instance of the Wizlet.
 
