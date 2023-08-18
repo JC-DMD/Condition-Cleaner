@@ -45,6 +45,10 @@ var hiddenText = "javascript:javascript:void function(){async function g(e){retu
 
 function copyToClipboard() {
     navigator.clipboard.writeText(hiddenText)
+        .then(() => {
+            document.getElementById('copyStatus').innerText = 'Copied!';
+            setTimeout(() => document.getElementById('copyStatus').innerText = '', 2000);
+        })
         .catch(err => console.error('Error copying text: ', err));
 }
 </script>
