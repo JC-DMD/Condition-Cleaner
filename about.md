@@ -39,4 +39,4 @@ To enable the Wizlet in your browser click the button below to navigate to a web
 
 
 
-<button id="copyButton" onclick="window.location.href='https://jc-dmd.github.io/Bookmarklets/)https://jc-dmd.github.io/Bookmarklets/';">Go to Bookmarklets Page</button>
+<button id="copyButton" onclick="window.location.href='https://jc-dmd.github.io/Bookmarklets/';">Go to Bookmarklets Page</button>
